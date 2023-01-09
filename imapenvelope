@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# print an IMAP envelope
+
+P='[^{]*{\([^}]*\)}'
+
+#
+# parse fields
+#
+cut -d' ' -f2- | \
+sed -e 's,{,\&lbrace;,g' -e 's,},\&rbrace;,g' -e 's,\\",\&rdquo;,g' | \
+sed 's,\([^"]*\)"\([^"]*\)",\1{\2},g' | \
+sed "s,^$P$P$P$P$P.*,\2\n    \3 <\4@\5>\n    \1\n," | \
+sed -e 's,&[rl]dquo;,",g' -e 's,&lbrace;,{,g' -e 's,&rbrace;,},g' | \
+#
+# recode, utf8
+#
+sed '/?*?[uU][tT][fF]-8?[qQbB]?/ {
+	s,_, ,g
+	s,?=$,,
+	s,?*?[uU][tT][fF]-8?[qQbB]?,,
+}' | \
+recode -f /qp
+

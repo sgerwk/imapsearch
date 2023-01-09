@@ -1,0 +1,201 @@
+.TH imapsearch 1 "Jan 8, 2023"
+
+.
+.
+.
+.SH NAME
+imapsearch - search in an IMAP mailbox and possibly download or delete emails
+
+.
+.
+.
+.SH SYNOPSIS
+\fBimapsearch\fP
+[\fIoptions\fP] -- \fIaccount\fP [\fIfirst\fP [\fIlast\fP]]
+
+.SH DESCRIPTION
+
+.B imapsearch
+searches an IMAP inbox for mails that match a given criteria, like number,
+subject and sender. The email found can optionally be downloaded or deleted,
+upon confirmation.
+
+.
+.
+.
+.SH OPTIONS
+
+.TP
+.BI -f " email
+mail from this sender
+
+.TP
+.BI -s " word
+mail whose subject contains this whole word
+
+.TP
+.BI -t " text
+mail containing this string, anywhere
+
+.TP
+.BI -a " date
+mail after this date, like 12-Dec-2022
+
+.TP
+.BI -r " range
+mail in this range, like 9120:*
+
+.TP
+.BI -c " string
+execute this IMAP command instead of searching
+
+.TP
+.BI -v " viewer
+use this command to show envelopes
+
+.TP
+.B -w
+open mailbox read-write (default is read-only)
+
+.TP
+.B -e
+only execute search or user-given command
+
+.TP
+.B -l
+only list messages
+
+.TP
+.B -x
+show the structure of each message
+
+.TP
+.B -b
+show the body of the each message
+
+.TP
+.BI -p " prefix
+save each message \fIn\fP to \fIprefix.n\fP
+
+.TP
+.B -d
+delete messages found (with \fI-w\fP), after confirm
+
+.TP
+.B -i
+list of inboxes in the server
+
+.TP
+.B -V
+verbose
+
+.TP
+.B -h
+inline help
+
+.TP
+.B account
+account number or name; see \fIACCOUNTS\fP, below 
+
+.TP
+.B first
+first message, negative means from last
+
+.TP
+.B last
+last message, negative means from last
+
+.
+.
+.
+.SH ACCOUNTS
+
+Accounts are in the file \fI$HOME/.config/imapsearch/accounts.txt\fP, one per
+line. Each is a tab-separated list:
+
+.IP "  * " 4
+name of the account (an arbitrary string)
+
+.IP "  * "
+server
+
+.IP "  * "
+user
+
+.IP "  * "
+password (or \fINULL\fP)
+
+.IP "  * "
+inbox
+
+.P
+If the account given is a number, it is the index in this list, starting from
+zero. Otherwise, it is the name of the account.
+
+If the password is the literal string \fINULL\fP, it is asked to the user.
+
+.
+.
+.
+.SH OPERATION
+
+The default sequence of operations is: execute a search with the criteria given
+by the \fI-f\fP, \fI-s\fP, \fI-t\fP, \fI-a\fP, \fI-r\fP, options or the
+\fIfirst\fP and \fIlast\fP parameters, then fetch the envelopes of the
+resulting emails.
+
+Envelopes are shown exactly as returned from the IMAP server, as a nested list
+of strings. The \fI-v\fP option specifies an external program to be called on
+each envelope on stdin to show it. The \fBimapenvelope\fP script formats
+envelopes in a user-friendly way.
+
+The \fI-c\fP option replaces the search with an arbitrary IMAP command. If it
+is still a search, operations continue as before on the emails found.
+Otherwise, nothing else is done. The latter is also the case with \fI-e\fP.
+
+The default is to show the envelope of each message found. With \fI-l\fP,
+messages are only listed. Option \fI-x\fP shows the structure of each message.
+Option \fI-d\fP asks whether each message is to be deleted. The latter requires
+\fI-w\fP, as the inbox is opened read-only by default instead of read-write.
+
+Unless a message is deleted, its flags are restored after reading. Therefore,
+it remains unread if it was even if its body is read.
+
+.
+.
+.
+.SH EXAMPLE COMMANDS
+
+The following are some valid commands to option \fI-c\fP.
+
+.TP
+.I
+LIST "" Saved/*
+list of children inboxes of
+.I Saved
+
+.TP
+.I
+STATUS Inbox (MESSAGES RECENT UNSEEN)
+number of messages in
+.I Inbox
+
+.TP
+.I
+STORE 9386 +FLAGS (\\Seen)
+.PD 0
+.TP
+.I
+STORE 9386 -FLAGS (\\Seen)
+mark mail 9386 as seen or unseen (require \fI-w\fP)
+
+.TP
+.I
+SEARCH UNSEEN 9300:*
+show unseen messages from number 9300 on
+
+.TP
+.I
+NOOP
+no operation
+

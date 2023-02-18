@@ -506,6 +506,7 @@ void usage(int ret) {
 	int i;
 	printf("imapsearch [options] -- account [first [last]]\n");
 	printf("\t-f email\tonly from this sender\n");
+	printf("\t-o email\tonly to this recipient\n");
 	printf("\t-s word\t\tonly with subject containing this whole word\n");
 	printf("\t-t text\t\tonly containing this string, anywhere\n");
 	printf("\t-a date\t\tonly after this date, like 12-Dec-2022\n");
@@ -578,11 +579,14 @@ int main(int argn, char *argv[]) {
 	verbose = 0;
 	accts = NULL;
 	n = -1;
-	while (-1 != (opt = getopt(argn, argv, "f:s:t:a:r:c:v:ewlxbp:diVh"))) {
+	while (-1 != (opt = getopt(argn, argv, "f:o:s:t:a:r:c:v:ewlxbp:diVh"))) {
 		searchadd = NULL;
 		switch(opt) {
 			case 'f':
 				searchadd = " FROM ";
+				break;
+			case 'o':
+				searchadd = " TO ";
 				break;
 			case 's':
 				searchadd = " SUBJECT ";

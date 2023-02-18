@@ -521,9 +521,10 @@ void usage(int ret) {
 	printf("\t-p prefix\tsave each message n to prefix.n\n");
 	printf("\t-d\t\tdelete messages found (with -w), after confirm\n");
 	printf("\t-i\t\tlist of inboxes in the server\n");
+	printf("\t-z\t\tprint account file name list of accounts\n");
 	printf("\t-V\t\tverbose\n");
 	printf("\t-h\t\tinline help\n");
-	printf("\taccount\t\taccount number, list below\n");
+	printf("\taccount\t\taccount number\n");
 	printf("\tfirst\t\tfirst message, negative means from last\n");
 	printf("\tlast\t\tlast message, negative means from last\n");
 	if (accts == NULL)
@@ -546,7 +547,7 @@ int main(int argn, char *argv[]) {
 	char *viewer;
 	int searchsize;
 	int inboxes, commandonly, listonly, structure, body, restore, delete;
-	int verbose;
+	int accounts, verbose;
 	char *prefix, *openas;
 	int accno;
 	char *accname;
@@ -578,8 +579,9 @@ int main(int argn, char *argv[]) {
 	delete = 0;
 	verbose = 0;
 	accts = NULL;
+	accounts = 0;
 	n = -1;
-	while (-1 != (opt = getopt(argn, argv, "f:o:s:t:a:r:c:v:ewlxbp:diVh"))) {
+	while (-1 != (opt = getopt(argn, argv, "f:o:s:t:a:r:c:v:ewlxbp:dizVh"))) {
 		searchadd = NULL;
 		switch(opt) {
 			case 'f':
@@ -633,6 +635,9 @@ int main(int argn, char *argv[]) {
 			case 'i':
 				inboxes = 1;
 				break;
+			case 'z':
+				accounts = 1;
+				break;
 			case 'V':
 				verbose = 1;
 				break;
@@ -649,22 +654,10 @@ int main(int argn, char *argv[]) {
 			strcat(search, optarg);
 		}
 	}
-	if (argn - 1 < optind) {
+	if (argn - 1 < optind && ! accounts) {
 		printf("too few arguments\n");
 		usage(EXIT_FAILURE);
 	}
-	accno = strtol(argv[optind], &res, 10);
-	if (*res != '\0')
-		accname = argv[optind];
-	else {
-		accname = NULL;
-		if (accno < 0) {
-			printf("account number cannot be negative\n");
-			usage(EXIT_FAILURE);
-		}
-	}
-	first = argn - 1 <= optind + 0 ? 1 : atoi(argv[optind + 1]);
-	last =  argn - 1 <= optind + 1 ? 0 : atoi(argv[optind + 2]);
 
 			/* accounts */
 
@@ -693,6 +686,30 @@ int main(int argn, char *argv[]) {
 
 	}
 	fclose(file);
+	if (accounts) {
+		printf("accounts in %s\n", buf);
+		for (i = 0; accts[i].srv[0] != '\0'; i++)
+			printf("%d: user %s, mail in %s/%s\n",
+			       i, accts[i].usr, accts[i].srv, accts[i].dir);
+		return EXIT_SUCCESS;
+	}
+
+			/* account number, first and last mail */
+
+	accno = strtol(argv[optind], &res, 10);
+	if (*res != '\0')
+		accname = argv[optind];
+	else {
+		accname = NULL;
+		if (accno < 0) {
+			printf("account number cannot be negative\n");
+			usage(EXIT_FAILURE);
+		}
+	}
+	first = argn - 1 <= optind + 0 ? 1 : atoi(argv[optind + 1]);
+	last =  argn - 1 <= optind + 1 ? 0 : atoi(argv[optind + 2]);
+
+			/* account and password */
 
 	if (accname != NULL)
 		for (accno = 0; accno < i; accno++)

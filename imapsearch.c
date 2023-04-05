@@ -891,7 +891,7 @@ int main(int argn, char *argv[]) {
 			/* loop over emails */
 
 	for (i = begin; i <= end && ! breakloop; i++) {
-					/* message index */
+					/* email index */
 		j = idx == NULL ? i : idx[i];
 		printf("email %d\n", j);
 		if (listonly)

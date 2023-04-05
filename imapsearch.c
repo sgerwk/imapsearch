@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <term.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -440,6 +441,29 @@ void logout(int ret) {
 	SSL_shutdown(sl);
 #endif
 	exit(ret);
+}
+
+/*
+ * read a character
+ */
+char readchar() {
+	struct termios original, charbychar;
+	char c;
+
+	tcgetattr(STDIN_FILENO, &original);
+
+	charbychar = original;
+	charbychar.c_lflag &= ~(ICANON | ISIG | IEXTEN);
+	charbychar.c_cc[VMIN] = 1;
+	charbychar.c_cc[VTIME] = 0;
+
+	tcsetattr(STDIN_FILENO, TCSANOW, &charbychar);
+
+	fread(&c, 1, 1, stdin);
+
+	tcsetattr(STDIN_FILENO, TCSANOW, &original);
+
+	return c;
 }
 
 /*
@@ -922,17 +946,20 @@ int main(int argn, char *argv[]) {
 
 					/* delete message */
 		if (delete && idx != NULL) {
-			printf("delete message [yes/No/exit]? ");
-			scanf("%s", buf);
-			if (buf[0] == 'y') {
+			printf("delete email [yes/No/exit]? ");
+			c = readchar();
+			printf("\n");
+			switch(c) {
+			case 'y':
 				sprintf(buf,
 					"%sSTORE %d:%d +FLAGS (\\Deleted)",
 					uid, j, j);
 				res = sendrecv(sl, buf);
 				free(res);
-			}
-			else if (buf[0] == 'e')
+				break;
+			case 'e':
 				logout(EXIT_SUCCESS);
+			}
 		}
 
 					/* get flags again, just to be sure */

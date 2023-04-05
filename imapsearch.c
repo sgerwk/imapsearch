@@ -20,6 +20,32 @@
 #include <signal.h>
 
 /*
+ * debug print
+ */
+int debug = 0;
+#define dprintf if (debug) printf
+
+/*
+ * simulated errors
+ *
+ */
+char *simulate_error_where;
+#define INITIALIZE_ERROR() srandom(time(NULL))
+#define SIMULATE_ERROR(where, what)					\
+	if (strstr(simulate_error_where, where)) {			\
+		printf("SIMULATED ERROR %s\n", where);			\
+		what[random() % strlen(what)] =				\
+			random() % ('~' - ' ') + ' '; \
+	}
+void simulate_error_usage() {
+	printf("simulated errors:\n");
+	printf("\tfetch-envelope\n\tfetch-flags\n\tfetch-body-structure\n");
+	printf("\tfetch-body\n\tlogin\n\tlist-inboxes\n\tselect-inbox\n");
+	printf("\tsearch\n\tfetch-all-envelopes\n\trestore-flags\n\tdelete\n");
+	printf("\tnoop\n");
+}
+
+/*
  * accounts
  */
 struct {
@@ -547,6 +573,7 @@ void usage(int ret) {
 	printf("\t-i\t\tlist of inboxes in the server\n");
 	printf("\t-z\t\tprint account file name list of accounts\n");
 	printf("\t-V\t\tverbose\n");
+	printf("\t-E where\tsimulated errors, where=help for a list\n");
 	printf("\t-h\t\tinline help\n");
 	printf("\taccount\t\taccount number\n");
 	printf("\tfirst\t\tfirst email, negative means from last\n");
@@ -602,10 +629,11 @@ int main(int argn, char *argv[]) {
 	restore = 1;
 	delete = 0;
 	verbose = 0;
+	simulate_error_where = "";
 	accts = NULL;
 	accounts = 0;
 	n = -1;
-	while (-1 != (opt = getopt(argn, argv, "f:o:s:t:a:r:c:v:ewlxbp:dizVh"))) {
+	while (-1 != (opt = getopt(argn, argv, "f:o:s:t:a:r:c:v:ewlxbp:dizVE:h"))) {
 		searchadd = NULL;
 		switch(opt) {
 			case 'f':
@@ -664,6 +692,13 @@ int main(int argn, char *argv[]) {
 				break;
 			case 'V':
 				verbose = 1;
+				break;
+			case 'E':
+				if (! strcmp(optarg, "help")) {
+					simulate_error_usage();
+					return EXIT_SUCCESS;
+				}
+				simulate_error_where = optarg;
 				break;
 			case 'h':
 				usage(EXIT_SUCCESS);
@@ -777,6 +812,7 @@ int main(int argn, char *argv[]) {
 			/* login */
 
 	sprintf(buf, "LOGIN %s %s", accts[accno].usr, accts[accno].psw);
+	SIMULATE_ERROR("login", buf);
 	res = sendrecv(sl, buf);
 	free(res);
 
@@ -784,6 +820,7 @@ int main(int argn, char *argv[]) {
 
 	if (inboxes) {
 		res = sendrecv(sl, "LIST \"\" *");
+		SIMULATE_ERROR("list-inboxes", buf);
 		if (! verbose)
 			fputs(res, stdout);
 		free(res);
@@ -801,6 +838,7 @@ int main(int argn, char *argv[]) {
 		sprintf(buf, "%s INBOX", openas);
 	else
 		sprintf(buf, "%s %s", openas, accts[accno].dir);
+	SIMULATE_ERROR("select-inbox", buf);
 	res = sendrecv(sl, buf);
 	for (cur = res;
 	     cur != NULL && (cur == res || ++cur != NULL);
@@ -826,7 +864,7 @@ int main(int argn, char *argv[]) {
 		idx = NULL;
 		begin = first;
 		end = last;
-		printf("mails from %d to %d\n", begin, end);
+		printf("emails from %d to %d\n", begin, end);
 		sprintf(buf, "%sFETCH %d:%d ENVELOPE", uid, begin, end);
 	}
 	else {
@@ -837,6 +875,7 @@ int main(int argn, char *argv[]) {
 				search == NULL ? "" : search);
 		printf("command: %s\n", buf);
 		uid = strstr(buf, "UID ") == buf ? "UID " : "";
+		SIMULATE_ERROR("search", buf);
 		res = sendrecv(sl, buf);
 		if (strstr(res, "* SEARCH ") != res)
 			commandonly = 1;
@@ -857,7 +896,7 @@ int main(int argn, char *argv[]) {
 
 		begin = 0;
 		end = m - 1;
-		printf("emails from %d to %d\n", idx[begin], idx[end]);
+		printf("email from %d to %d\n", idx[begin], idx[end]);
 		printf("between %d and %d\n", first, last);
 		breakloop = 0;
 
@@ -870,6 +909,7 @@ int main(int argn, char *argv[]) {
 			/* load all envelopes at once if possible */
 
 	if (! listonly && ! structure && ! body && ! (delete && idx != NULL)) {
+		SIMULATE_ERROR("fetch-all-envelopes", buf);
 		res = sendrecv(sl, buf);
 		if (res == NULL) {
 		}
@@ -899,6 +939,7 @@ int main(int argn, char *argv[]) {
 
 					/* fetch envelope */
 		sprintf(buf, "%sFETCH %d ENVELOPE", uid, j);
+		SIMULATE_ERROR("fetch-envelope", buf);
 		res = sendrecv(sl, buf);
 		if (! verbose) {
 			cur = strchr(res, '\n');
@@ -916,6 +957,7 @@ int main(int argn, char *argv[]) {
 					/* get flags */
 		if (structure || body) {
 			sprintf(buf, "%sFETCH %d FLAGS", uid, j);
+			SIMULATE_ERROR("fetch-flags", buf);
 			res = sendrecv(sl, buf);
 			seen = strstr(res, "\\Seen");
 			if (! verbose)
@@ -926,6 +968,7 @@ int main(int argn, char *argv[]) {
 					/* get body structure */
 		if (structure) {
 			sprintf(buf, "%sFETCH %d BODYSTRUCTURE", uid, j);
+			SIMULATE_ERROR("fetch-body", buf);
 			res = sendrecv(sl, buf);
 			if (! verbose)
 				fputs(res, stdout);
@@ -961,6 +1004,7 @@ int main(int argn, char *argv[]) {
 				sprintf(buf,
 					"%sSTORE %d:%d +FLAGS (\\Deleted)",
 					uid, j, j);
+				SIMULATE_ERROR("delete", buf);
 				res = sendrecv(sl, buf);
 				free(res);
 				break;
@@ -982,6 +1026,7 @@ int main(int argn, char *argv[]) {
 			/* not really necessary because of FETCH BODY.PEEK */
 			sprintf(buf, "%sSTORE %d:%d -FLAGS (\\SEEN)",
 				uid, j, j);
+			SIMULATE_ERROR("restore-flags", buf);
 			res = sendrecv(sl, buf);
 			free(res);
 		}

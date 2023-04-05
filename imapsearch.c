@@ -767,6 +767,13 @@ int main(int argn, char *argv[]) {
 	fdgets(buf, BUFLEN - 1, sl, 0);
 	printstring(buf);
 
+			/* test connection */
+
+	strcpy(buf, "NOOP");
+	SIMULATE_ERROR("noop", buf);
+	res = sendrecv(sl, buf);
+	free(res);
+
 			/* login */
 
 	sprintf(buf, "LOGIN %s %s", accts[accno].usr, accts[accno].psw);

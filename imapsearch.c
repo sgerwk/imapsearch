@@ -130,7 +130,7 @@ char *fdgets(char *buf, int size, FD sl, int balanced) {
 			buf[pos] = '"';
 			break;
 
-				/* \n logouts line */
+				/* \n ends line */
 		case '\n':
 			// printf("%d %d\n", parent, quote);
 			if (! balanced || (parent <= 0 && quote % 2 == 0)) {
@@ -281,7 +281,7 @@ void recvemail(FD sl, FILE* dest) {
 	while (*res != '{')
 		res++;
 	if (sscanf(res, "{%d}", &size) != 1) {
-		printf("Cannot read message size\n");
+		printf("cannot read mail size\n");
 		logout(EXIT_FAILURE);
 	}
 
@@ -539,18 +539,18 @@ void usage(int ret) {
 	printf("\t-v viewer\tshow envelopes with this external command\n");
 	printf("\t-w\t\topen mailbox read-write (default is read-only)\n");
 	printf("\t-e\t\tonly execute search or user-given command\n");
-	printf("\t-l\t\tonly list messages\n");
-	printf("\t-x\t\tenvelope, flags and structure of each message\n");
-	printf("\t-b\t\tbody of the each message\n");
-	printf("\t-p prefix\tsave each message n to prefix.n\n");
-	printf("\t-d\t\tdelete messages found (with -w), after confirm\n");
+	printf("\t-l\t\tonly list emails\n");
+	printf("\t-x\t\tenvelope, flags and structure of each email\n");
+	printf("\t-b\t\tbody of the each email\n");
+	printf("\t-p prefix\tsave each email n to prefix.n\n");
+	printf("\t-d\t\tdelete emails found (with -w), after confirm\n");
 	printf("\t-i\t\tlist of inboxes in the server\n");
 	printf("\t-z\t\tprint account file name list of accounts\n");
 	printf("\t-V\t\tverbose\n");
 	printf("\t-h\t\tinline help\n");
 	printf("\taccount\t\taccount number\n");
-	printf("\tfirst\t\tfirst message, negative means from last\n");
-	printf("\tlast\t\tlast message, negative means from last\n");
+	printf("\tfirst\t\tfirst email, negative means from last\n");
+	printf("\tlast\t\tlast email, negative means from last\n");
 	if (accts == NULL)
 		exit(ret);
 	printf("accounts:\n");
@@ -806,7 +806,7 @@ int main(int argn, char *argv[]) {
 
 	if (n == -1)
 		logout(EXIT_FAILURE);
-	printf("[%d messages]\n", n);
+	printf("[%d emails]\n", n);
 	fflush(stdout);
 
 	first = first > 0 ? first : n + first + 1;
@@ -819,7 +819,7 @@ int main(int argn, char *argv[]) {
 		idx = NULL;
 		begin = first;
 		end = last;
-		printf("messages from %d to %d\n", begin, end);
+		printf("mails from %d to %d\n", begin, end);
 		sprintf(buf, "%sFETCH %d:%d ENVELOPE", uid, begin, end);
 	}
 	else {
@@ -841,7 +841,7 @@ int main(int argn, char *argv[]) {
 		if (commandonly)
 			logout(EXIT_SUCCESS);
 
-		printf("messages found: %d\n", m);
+		printf("emails found: %d\n", m);
 		if (m == 0)
 			logout(EXIT_FAILURE);
 		for (i = 0; i < m; i++)
@@ -850,7 +850,7 @@ int main(int argn, char *argv[]) {
 
 		begin = 0;
 		end = m - 1;
-		printf("messages from %d to %d\n", idx[begin], idx[end]);
+		printf("emails from %d to %d\n", idx[begin], idx[end]);
 		printf("between %d and %d\n", first, last);
 		breakloop = 0;
 
@@ -881,12 +881,12 @@ int main(int argn, char *argv[]) {
 		logout(EXIT_SUCCESS);
 	}
 
-			/* loop over messages */
+			/* loop over emails */
 
 	for (i = begin; i <= end && ! breakloop; i++) {
 					/* message index */
 		j = idx == NULL ? i : idx[i];
-		printf("message %d\n", j);
+		printf("email %d\n", j);
 		if (listonly)
 			continue;
 
@@ -944,7 +944,7 @@ int main(int argn, char *argv[]) {
 			free(res);
 		}
 
-					/* delete message */
+					/* delete email */
 		if (delete && idx != NULL) {
 			printf("delete email [yes/No/exit]? ");
 			c = readchar();
@@ -981,7 +981,7 @@ int main(int argn, char *argv[]) {
 	}
 
 	if (prefix && fname[0] != '\0') {
-		printf("*** messages saved\n");
+		printf("*** emails saved\n");
 		printf("*** uncompress with munpack (unpack package)\n");
 	}
 
